@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Unit testing configuratin file.
+ *
+ * @author      Bogdan Constantinescu <bog_con@yahoo.com>
+ * @link        GitHub  https://github.com/z3ppelin/ymclient.git
+ * @licence     The BSD License (http://opensource.org/licenses/BSD-3-Clause); see LICENSE.txt
+ */
+-->
+
+<phpunit bootstrap="Bootstrap.php" colors="true">
+    <testsuites>
+        <testsuite name="ymclient">
+            <directory>./src</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

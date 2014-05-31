@@ -1,0 +1,17 @@
+# Travis CI configuration file
+language: php
+php:
+  - 5.5
+  - 5.4
+  - 5.3
+
+before_script:
+  - composer self-update
+  - composer install --dev --no-interaction
+
+script:
+  - mkdir -p build/logs
+  - ./vendor/bin/phpunit -c tests/phpunit.xml --coverage-clover build/logs/clover.xml
+
+after_script:
+  - php vendor/bin/coveralls -v
