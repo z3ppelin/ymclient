@@ -570,10 +570,6 @@ class Engine
                 $this->fetchAccessToken(true);
                 $strResponse = $this->makeApiCall($strUrl, 'GET', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
             }
-//            } elseif (false !== strpos($strResponse, 'Session Expired Error')) {
-//                $this->keepAliveSession();
-//                $strResponse = $this->curl($strUrl, 'GET', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
-//            }
         }
 
         if (200 != $intHttpStatus) {
