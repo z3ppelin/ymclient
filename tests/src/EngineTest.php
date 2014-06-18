@@ -564,7 +564,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      * Test login works ok.
      * @covers \bogcon\ymclient\Engine::logIn
      * @covers \bogcon\ymclient\Engine::getHeadersForCurlCall
-     * @covers bogcon\ymclient\Engine::getAuthorizationHeader
+     * @covers \bogcon\ymclient\Engine::getAuthorizationHeader
      */
     public function testLogInWorksFine()
     {
