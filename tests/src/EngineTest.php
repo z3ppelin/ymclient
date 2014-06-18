@@ -200,7 +200,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
-     * Test setter/getter method.
+     * Test setter/getter method for tokens.
      * @covers \bogcon\ymclient\Engine::setTokens
      * @covers \bogcon\ymclient\Engine::getTokens
      * @covers \bogcon\ymclient\Engine::hasAccessToken
@@ -220,6 +220,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             ),
         );
         $objYM = new Engine('das1sdas', 'dasda123sdas', 'appKey', 'appSecret');
+        $this->assertSame(array(), $objYM->getTokens());
         $objYM->setTokens($arrTokens);
         $this->assertSame($arrTokens, $objYM->getTokens());
         $this->assertTrue($objYM->hasAccessToken());
@@ -233,7 +234,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
-     * Test setter/getter method.
+     * Test setter/getter method for session.
      * @covers \bogcon\ymclient\Engine::setSession
      * @covers \bogcon\ymclient\Engine::getSession
      * @covers \bogcon\ymclient\Engine::hasSession
@@ -254,6 +255,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         );
 
         $objYM = new Engine('das1sdas', 'dasda123sdas', 'appKey', 'appSecret');
+        $this->assertSame(array(), $objYM->getSession());
+        
         $objYM->setSession($arrSession);
         $this->assertSame($arrSession, $objYM->getSession());
         $this->assertTrue($objYM->hasSession());
@@ -265,21 +268,22 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
-     * Test setter/getter method.
+     * Test setter/getter method for renewed token flag.
      * @covers \bogcon\ymclient\Engine::setTokenRenewed
      * @covers \bogcon\ymclient\Engine::isTokenRenewed
      */
     public function testSetIsTokenRenewed()
     {
         $objYM = new Engine('vxc123ads', 'das_+DAS', 'appKey', 'appSecret');
+        $this->assertFalse($objYM->isTokenRenewed());
         $objYM->setTokenRenewed(true);
-        $this->assertSame(true, $objYM->isTokenRenewed());
+        $this->assertTrue($objYM->isTokenRenewed());
         $objYM->setTokenRenewed(false);
-        $this->assertSame(false, $objYM->isTokenRenewed());
+        $this->assertFalse(false, $objYM->isTokenRenewed());
         $objYM->setTokenRenewed(0);
-        $this->assertSame(false, $objYM->isTokenRenewed());
-        $objYM->setTokenRenewed('dasdasdas');
-        $this->assertSame(true, $objYM->isTokenRenewed());
+        $this->assertFalse($objYM->isTokenRenewed());
+        $objYM->setTokenRenewed('trueeee');
+        $this->assertTrue($objYM->isTokenRenewed());
     }
     
     
@@ -287,47 +291,42 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     /**
      * Test exception is thrown when request token is not received from api call.
      * @expectedException \bogcon\ymclient\Exception
-     * @covers \bogcon\ymclient\Engine::fetchRequestToken
+     * @covers \bogcon\ymclient\Engine::getRequestToken
+     * @covers \bogcon\ymclient\Engine::hasRequestToken
      */
-    public function testFetchRequestTokenIsThrowingException()
+    public function testGetRequestTokenIsThrowingException()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $objStub->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('aaaaaaa'));
-        $objStub->fetchRequestToken();
+        $objStub->getRequestToken();
     }
     
     
     
     /**
-     * Test method works properly when request token is received from api call.
-     * @covers \bogcon\ymclient\Engine::fetchRequestToken
+     * Test method works properly.
+     * @covers \bogcon\ymclient\Engine::getRequestToken
+     * @covers \bogcon\ymclient\Engine::hasRequestToken
      */
-    public function testFetchRequestTokenWorksFine()
+    public function testGetRequestTokenWorksFine()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objStub->expects($this->once()) // first time make api call
                 ->method('makeApiCall')
-                ->will($this->returnValue('RequestToken=aaaaaaa'));
-        $objStub->fetchRequestToken();
-    }
-    
-    
-    
-    /**
-     * Test exception is thrown when tring to fetch access token and no request token was previously set.
-     * @expectedException \bogcon\ymclient\Exception
-     * @expectedExceptionMessage    No request token previously set.
-     * @covers \bogcon\ymclient\Engine::fetchAccessToken
-     */
-    public function testFetchAccessTokenIsThrowingExceptionWhenNoRequestTokenPreviouslySet()
-    {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->never())
-                ->method('makeApiCall')
-                ->will($this->returnValue('aaaaaaa'));
-        $objStub->fetchAccessToken();
+                ->will($this->returnValue('RequestToken=cadscas1231234wre'));
+        $this->assertEquals('cadscas1231234wre', $objStub->getRequestToken());
+        $this->assertTrue($objStub->hasRequestToken());
+        
+        $objStub->expects($this->never()) // second time retrieve directly
+                ->method('makeApiCall');
+        $this->assertEquals('cadscas1231234wre', $objStub->getRequestToken());
+        
+        $objStub->setTokens(array('request' => 'testRequestToken'));
+        $objStub->expects($this->never()) // test no api call is made after request is set manually
+                ->method('makeApiCall');
+        $this->assertEquals('testRequestToken', $objStub->getRequestToken());
     }
     
     
@@ -335,49 +334,71 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     /**
      * Test exception is thrown when access token is not received from api call.
      * @expectedException \bogcon\ymclient\Exception
-     * @covers \bogcon\ymclient\Engine::fetchAccessToken
+     * @covers \bogcon\ymclient\Engine::getAccessToken
      */
-    public function testFetchAccessTokenIsThrowingExceptionWhenNoAccessTokenIsReceived()
+    public function testGetAccessTokenIsThrowingExceptionWhenNoAccessTokenIsReceived()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $objStub->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('aaaaaaa'));
         $objStub->setTokens(array('request' => 'testRequestToken'))
-                ->fetchAccessToken();
+                ->getAccessToken();
     }
     
     
     
     /**
-     * Test method is working properly where access token is received from api call.
-     * @covers \bogcon\ymclient\Engine::fetchAccessToken
+     * Test method is working properly when access token is received from api call.
+     * @covers \bogcon\ymclient\Engine::getAccessToken
+     * @covers \bogcon\ymclient\Engine::hasAccessToken
+     * @covers \bogcon\ymclient\Engine::isTokenRenewed
      */
-    public function testFetchAccessTokenWorksFine()
+    public function testGetAccessTokenWorksFine()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objStub->expects($this->once()) // first time fetch access token from Yahoo API
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->setTokens(array('request' => 'testRequestToken'))
-                ->fetchAccessToken();
+        $objStub->setTokens(array('request' => 'testRequestToken'));
+        $accessToken = $objStub->getAccessToken();
+        $this->assertNotEmpty($accessToken);
+        $this->assertTrue($objStub->hasAccessToken());
+        $this->assertTrue($objStub->isTokenRenewed()); // first call to isTokenRenewed should return true
+        
+        $objStub->expects($this->never()) // second time fetch internal
+                ->method('makeApiCall');
+        $this->assertSame($accessToken, $objStub->getAccessToken());
+        $this->assertFalse($objStub->isTokenRenewed()); // second call to isTokenRenewed should return false
     }
     
     
     
     /**
-     * Test access token renewal is throwing exception when there is no access token to renew.
-     * @expectedException \bogcon\ymclient\Exception
-     * @expectedExceptionMessage    No access token to renew.
-     * @covers \bogcon\ymclient\Engine::fetchAccessToken
+     * Test method is working properly when access token is received from api call and also request token was not previously set.
+     * @covers \bogcon\ymclient\Engine::getAccessToken
+     * @covers \bogcon\ymclient\Engine::hasAccessToken
+     * @covers \bogcon\ymclient\Engine::isTokenRenewed
      */
-    public function testFetchAccessTokenRenewalIsThrowingExceptionWhenNoAccessTokenPreviouslySet()
+    public function testGetAccessTokenWorksFine2()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->never())
+        $objStub->expects($this->at(0)) // fetch request token call
+                ->method('makeApiCall')
+                ->will($this->returnValue('RequestToken=cadscas1231234wre'));
+        $objStub->expects($this->at(1)) // fetch access token from Yahoo API
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->fetchAccessToken(true);
+        
+        $accessToken = $objStub->getAccessToken();
+        $this->assertNotEmpty($accessToken);
+        $this->assertTrue($objStub->hasAccessToken());
+        $this->assertTrue($objStub->isTokenRenewed()); // first call to isTokenRenewed should return true
+        
+        $objStub->expects($this->never()) // fetch access token internal
+                ->method('makeApiCall');
+        $this->assertSame($accessToken, $objStub->getAccessToken());
+        $this->assertFalse($objStub->isTokenRenewed()); // second call to isTokenRenewed should return false
     }
     
     
@@ -385,9 +406,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     /**
      * Test access token renewal is throwing exception when no renewed access token is received from api call.
      * @expectedException \bogcon\ymclient\Exception
-     * @covers \bogcon\ymclient\Engine::fetchAccessToken
+     * @covers \bogcon\ymclient\Engine::getAccessToken
      */
-    public function testFetchAccessTokenRenewalIsThrowingExceptionWhenNoNewAccessTokenIsReceived()
+    public function testGetAccessTokenForcedIsThrowingExceptionWhenNoNewAccessTokenIsReceived()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $objStub->expects($this->once())
@@ -405,24 +426,33 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     'xoauth_yahoo_guid' => 'someTestXOAuthYahooGuid'
                 ),
             )
-        )->fetchAccessToken(true);
+        );
+        
+        try {
+            $objStub->getAccessToken(true);
+        } catch (\bogcon\ymclient\Exception $objEx) {
+            if (false === mb_strpos($objEx->getMessage(), 'Could not fetch access token. Api response:')) {
+                $this->fail('Not the expected exception. Received instead: ' . $objEx->getMessage());
+            }
+            throw $objEx;
+        }
     }
     
     
     
     /**
      * Test access token renewal is working fine.
-     * @covers \bogcon\ymclient\Engine::fetchAccessToken
+     * @covers \bogcon\ymclient\Engine::getAccessToken
      * @covers \bogcon\ymclient\Engine::isTokenRenewed
      * @covers \bogcon\ymclient\Engine::hasAccessToken
      * @covers \bogcon\ymclient\Engine::hasRequestToken
      */
-    public function testFetchAccessTokenRenewalWorksFine()
+    public function testGetAccessTokenForcedWorksFine()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $objStub->expects($this->once())
                 ->method('makeApiCall')
-                ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
+                ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477970&xoauth_yahoo_guid=testXOAuthYahooGuid'));
         $objStub->setTokens(
             array(
                 'request' => 'someTestRequestToken',
@@ -435,7 +465,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     'xoauth_yahoo_guid' => 'someTestXOAuthYahooGuid'
                 ),
             )
-        )->fetchAccessToken(true);
+        )->getAccessToken(true);
+        
         $this->assertTrue($objStub->isTokenRenewed());
         $this->assertSame(
             array(
@@ -445,7 +476,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     'oauth_token_secret' => 'testOAuthTokenSecret',
                     'oauth_expires_in' => '3600',
                     'oauth_session_handle' => 'testOAuthSessionHandle',
-                    'oauth_authorization_expires_in' => '770477963',
+                    'oauth_authorization_expires_in' => '770477970',
                     'xoauth_yahoo_guid' => 'testXOAuthYahooGuid'
                 ),
             ),
@@ -453,23 +484,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         );
         $this->assertTrue($objStub->hasAccessToken());
         $this->assertTrue($objStub->hasRequestToken());
-    }
-    
-    
-    
-    /**
-     * Test login throws exception if not access token is set.
-     * @expectedException \bogcon\ymclient\Exception
-     * @expectedExceptionMessage    No access token previously set.
-     * @covers \bogcon\ymclient\Engine::logIn
-     */
-    public function testLogInThrowsExceptionWhenNoAccessToken()
-    {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        
+        // test second call to getAccessToken() fetch internal, not from API
         $objStub->expects($this->never())
-                ->method('makeApiCall')
-                ->will($this->returnValue('aaaa'));
-        $objStub->logIn();
+                ->method('makeApiCall');
+        $this->assertSame(array(
+            'oauth_token' => 'testOAuthToken',
+            'oauth_token_secret' => 'testOAuthTokenSecret',
+            'oauth_expires_in' => '3600',
+            'oauth_session_handle' => 'testOAuthSessionHandle',
+            'oauth_authorization_expires_in' => '770477970',
+            'xoauth_yahoo_guid' => 'testXOAuthYahooGuid'
+            
+        ), $objStub->getAccessToken());
+        $this->assertFalse($objStub->isTokenRenewed()); // was renewed(taken from api) last call, now it is returned from internal field.
     }
     
     
@@ -500,7 +528,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
-     * Test login fails when http status code retreived from curl call is not 200.
+     * Test login fails when the response retreived from curl call is not valid json.
      * @expectedException \bogcon\ymclient\Exception
      * @covers \bogcon\ymclient\Engine::logIn
      */
@@ -527,7 +555,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     'oauth_session_handle' => 'someTestOAuthSessionHandle',
                 ),
             )
-        )->logIn();
+        )->logIn(100000, 'I am very busy'); // invalid status, should set the default one + status message
     }
     
     
@@ -588,48 +616,6 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         $this->assertSame($arrSession, $objStub->getSession());
-    }
-    
-    
-    /**
-     * Test indirecly that protected getAuthorizationHeader throws exception when no previously access token set.
-     * @covers bogcon\ymclient\Engine::getAuthorizationHeader
-     * @covers \bogcon\ymclient\Engine::getHeadersForCurlCall
-     * @covers \bogcon\ymclient\Engine::logIn
-     * @expectedException \bogcon\ymclient\Exception
-     * @expectedExceptionMessage noaccesstoken
-     */
-    public function testIndirectlyThatAuthorizationHeaderThrowsExceptionWhenNoToken()
-    {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $intHttpStatusCode = 0;
-        $arrSession = array(
-            'sessionId' => 'someTestSessionId',
-            'primaryLoginId' => 'someLoginId',
-            'displayInfo' => array(
-                'avatarPreference' => '0',
-            ),
-            'server' => 'rcore3.messenger.yahooapis.com',
-            'notifyServer' => 'rproxy3.messenger.yahooapis.com',
-            'constants' => array(
-                'presenceSubscriptionsMaxPerRequest' => 500,
-            ),
-        );
-        $objStub->expects($this->never())
-                ->method('makeApiCall');
-        $objStub->setTokens(
-                array(
-                    'request' => 'someTestRequestToken',
-                )
-            );
-        try {
-            $objStub->logIn();
-        } catch (\bogcon\ymclient\Exception $objEx) {
-            if (false === strpos($objEx->getMessage(), 'No access token previously set')) {
-                $this->fail('Exception should have been thrown');
-            }
-            throw new \bogcon\ymclient\Exception('noaccesstoken');
-        }
     }
     
     
@@ -1213,7 +1199,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      * @expectedExceptionMessage json
      * @covers \bogcon\ymclient\Engine::fetchGroups
      */
-    public function testFetchGroupsWorksThrowsExceptionWhenBadJson()
+    public function testFetchGroupsThrowsExceptionWhenBadJson()
     {
         $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
         
@@ -1263,6 +1249,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             }
             throw new \bogcon\ymclient\Exception('json');
         }
+    }
+    
+    
+    
+    /**
+     * Test groups retrieval throws exception when trying to access directly, without previously logging in.
+     * @expectedException \bogcon\ymclient\Exception
+     * @expectedExceptionMessage You have to be logged in in order to perform this action.
+     * @covers \bogcon\ymclient\Engine::fetchGroups
+     */
+    public function testFetchGroupsThrowsExceptionWhenNoPreviouslyLoggedIn()
+    {
+        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objStub->fetchGroups();
     }
     
     
@@ -1499,6 +1499,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
+     * Test notifications retrieval throws exception when trying to access directly, without previously logging in.
+     * @expectedException \bogcon\ymclient\Exception
+     * @expectedExceptionMessage You have to be logged in in order to perform this action.
+     * @covers \bogcon\ymclient\Engine::fetchNotifications
+     */
+    public function testFetchNotificationsThrowsExceptionWhenNoPreviouslyLoggedIn()
+    {
+        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objStub->fetchNotifications(321);
+    }
+    
+    
+    
+    /**
      * Test notifications retrieval works fine if token expired.
      * @covers \bogcon\ymclient\Engine::fetchNotifications
      * @covers \bogcon\ymclient\Engine::isTokenRenewed
@@ -1662,6 +1676,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         )->logIn()
          ->sendMessage('How are you my friend?', 'buddyYahooId');
         $this->fail("Exception should have been thrown");
+    }
+    
+    
+    
+    /**
+     * Test message sending throws exception when trying to access directly, without previously logging in.
+     * @expectedException \bogcon\ymclient\Exception
+     * @expectedExceptionMessage You have to be logged in in order to perform this action.
+     * @covers \bogcon\ymclient\Engine::sendMessage
+     */
+    public function testSendMessageThrowsExceptionWhenNoPreviouslyLoggedIn()
+    {
+        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objStub->sendMessage('How are you my friend?', 'buddyYahooId');
     }
     
     
@@ -1832,6 +1860,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
+     * Test presence state changing throws exception when trying to access directly, without previously logging in.
+     * @expectedException \bogcon\ymclient\Exception
+     * @expectedExceptionMessage You have to be logged in in order to perform this action.
+     * @covers \bogcon\ymclient\Engine::changePresenceState
+     */
+    public function testChangePresenceStateThrowsExceptionWhenNoPreviouslyLoggedIn()
+    {
+        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objStub->changePresenceState(\bogcon\ymclient\Engine::USER_IS_BUSY, 'Very very busy...');
+    }
+    
+    
+    
+    /**
      * Test presence state changing works fine if token expired.
      * @covers \bogcon\ymclient\Engine::changePresenceState
      * @covers \bogcon\ymclient\Engine::isTokenRenewed
@@ -1992,13 +2034,27 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         try {
-            $objStub->authorizeBuddy('buddyYahooId', \bogcon\ymclient\Engine::BUDDY_ACCEPT, 'yahoo', 'I dont know you');
+            $objStub->authorizeBuddy('buddyYahooId', \bogcon\ymclient\Engine::BUDDY_DECLINE, 'yahoo', 'I dont know you');
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === strpos($objEx->getMessage(), 'Could not authorize buddy.')) {
                 $this->fail('Exception should have been thrown.');
             }
             throw new \bogcon\ymclient\Exception('authbuddy');
         }
+    }
+    
+    
+    
+    /**
+     * Test buddy authorization throws exception when trying to access directly, without previously logging in.
+     * @expectedException \bogcon\ymclient\Exception
+     * @expectedExceptionMessage You have to be logged in in order to perform this action.
+     * @covers \bogcon\ymclient\Engine::authorizeBuddy
+     */
+    public function testAuthorizeBuddyThrowsExceptionWhenNoPreviouslyLoggedIn()
+    {
+        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objStub->authorizeBuddy('buddyYahooId');
     }
     
     
@@ -2403,6 +2459,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         )->logIn()
          ->keepAliveSession();
         $this->fail("Exception should have been thrown");
+    }
+    
+    
+    
+    /**
+     * Test keep session alive throws exception when trying to access directly, without previously logging in.
+     * @expectedException \bogcon\ymclient\Exception
+     * @expectedExceptionMessage You have to be logged in in order to perform this action.
+     * @covers \bogcon\ymclient\Engine::keepAliveSession
+     */
+    public function testKeepAliveSessionThrowsExceptionWhenNoPreviouslyLoggedIn()
+    {
+        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objStub->keepAliveSession();
     }
     
     

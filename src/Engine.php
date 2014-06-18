@@ -16,14 +16,14 @@ class Engine
     const URL_OAUTH_REQUEST_TOKEN    = 'https://login.yahoo.com/WSLogin/V1/get_auth_token';
     const URL_OAUTH_ACCESS_TOKEN     = 'https://api.login.yahoo.com/oauth/v2/get_token';
     const URL_YM_CREATE_SESSION      = 'http://developer.messenger.yahooapis.com/v1/session';
-    const URL_YM_DESTROY_SESSION     = 'http://{{SERVER}}/v1/session';
-    const URL_YM_KEEPALIVE_SESSION   = 'http://{{SERVER}}/v1/session/keepalive';
-    const URL_YM_CUSTOM_AVATARS      = 'http://displayimage.messenger.yahooapis.com/v1/displayImage/custom/{{NETWORK}}/{{USERID}}';
-    const URL_YM_GROUPS              = 'http://{{SERVER}}/v1/groups';
-    const URL_YM_NOTIFICATIONS       = 'http://{{SERVER}}/v1/notifications';
-    const URL_YM_SEND_MESSAGE        = 'http://{{SERVER}}/v1/message/{{NETWORK}}/{{TARGETID}}';
-    const URL_YM_PRESENCE            = 'http://{{SERVER}}/v1/presence';
-    const URL_YM_BUDDY_AUTHORIZATION = 'http://{{SERVER}}/v1/buddyrequest/{{NETWORK}}/{{CONTACTID}}';
+    const URL_YM_DESTROY_SESSION     = 'http://%SERVER%/v1/session';
+    const URL_YM_KEEPALIVE_SESSION   = 'http://%SERVER%/v1/session/keepalive';
+    const URL_YM_CUSTOM_AVATARS      = 'http://displayimage.messenger.yahooapis.com/v1/displayImage/custom/%NETWORK%/%USERID%';
+    const URL_YM_GROUPS              = 'http://%SERVER%/v1/groups';
+    const URL_YM_NOTIFICATIONS       = 'http://%SERVER%/v1/notifications';
+    const URL_YM_SEND_MESSAGE        = 'http://%SERVER%/v1/message/%NETWORK%/%TARGETID%';
+    const URL_YM_PRESENCE            = 'http://%SERVER%/v1/presence';
+    const URL_YM_BUDDY_AUTHORIZATION = 'http://%SERVER%/v1/buddyrequest/%NETWORK%/%CONTACTID%';
     
     /**
      *  @var const int      Constants for user presence statuses.
@@ -134,13 +134,13 @@ class Engine
         if (isset($arrUser[1]) && !preg_match('/^[a-z0-9_\.\+]{3,64}$/i', $arrUser[1])) {
             throw new Exception('Invalid param username. DNS must match [a-z0-9_.+] and must have at most 64 chars.');
         }
-        if (!is_string($strPassword) || strlen($strPassword) > 32) {
+        if (!is_string($strPassword) || mb_strlen($strPassword) > 32) {
             throw new Exception('Invalid param password.');
         }
-        if (!is_string($strAppKey) || !strlen($strAppKey)) {
+        if (!is_string($strAppKey) || !mb_strlen($strAppKey)) {
             throw new Exception('Invalid param app key.');
         }
-        if (!is_string($strAppSecret) || !strlen($strAppSecret)) {
+        if (!is_string($strAppSecret) || !mb_strlen($strAppSecret)) {
             throw new Exception('Invalid param app secret.');
         }
         $this->userName  = $strUserName;
@@ -211,29 +211,6 @@ class Engine
     
     
     /**
-     * Sets request token.
-     * @return  \bogcon\ymclient\Engine
-     * @throws  \bogcon\ymclient\Exception
-     */
-    public function fetchRequestToken()
-    {
-        $strUrl = self::URL_OAUTH_REQUEST_TOKEN
-            . '?login=' . urlencode($this->userName)
-            . '&passwd=' . urlencode($this->password)
-            . '&oauth_consumer_key=' . urldecode($this->appKey);
-
-        $strResponse = $this->makeApiCall($strUrl, 'GET', array(), '', true);
-        $arrBody = explode('=', $strResponse);
-        if (2 != count($arrBody) || strtolower($arrBody[0]) != 'requesttoken') {
-            throw new Exception('Could not get request token. Api response: ' . $strResponse);
-        }
-        $this->tokens['request'] = $arrBody[1];
-        return $this;
-    }
-    
-    
-    
-    /**
      * Checks if request token was set.
      * @return boolean
      */
@@ -272,60 +249,97 @@ class Engine
     
     
     /**
-     * Sets access token.
-     * @param   boolean     $blnRenew   Whether to renew the access token or not.
-     * @return  \bogcon\ymclient\Engine
-     * @throws  \bogcon\ymclient\Exception
+     * Getter method for request token; implements lazy instantiation.
+     * @return  string  The request token.
+     * @throws  \bogcon\ymclient\Exception  If could not fetch request token from Yahoo API.
      */
-    public function fetchAccessToken($blnRenew = false)
+    public function getRequestToken()
     {
-        $arrQuery = array(
-            'oauth_nonce' => uniqid(mt_rand(1, 1000)),
-            'oauth_consumer_key' => $this->appKey,
-            'oauth_signature_method' => 'PLAINTEXT',
-            'oauth_timestamp' => time(),
-            'oauth_version' => '1.0',
-        );
-        if ($blnRenew) {
-            if (!$this->hasAccessToken()) {
-                throw new Exception('No access token to renew.');
+        if (!$this->hasRequestToken()) {
+            $strUrl = self::URL_OAUTH_REQUEST_TOKEN
+                . '?login=' . urlencode($this->userName)
+                . '&passwd=' . urlencode($this->password)
+                . '&oauth_consumer_key=' . urldecode($this->appKey);
+
+            $strResponse = $this->makeApiCall($strUrl, 'GET', array(), '', true);
+            $arrBody = explode('=', $strResponse);
+            if (2 != count($arrBody) || mb_strtolower($arrBody[0]) != 'requesttoken') {
+                throw new Exception('Could not fetch request token. Api response: ' . $strResponse);
             }
-            $arrQuery['oauth_token'] = $this->tokens['access']['oauth_token'];
-            $arrQuery['oauth_signature'] = $this->appSecret . '&' . $this->tokens['access']['oauth_token_secret'];
-            $arrQuery['oauth_session_handle'] = $this->tokens['access']['oauth_session_handle'];
-            $this->setTokenRenewed(true);
-        } else {
-            if (!$this->hasRequestToken()) {
-                throw new Exception('No request token previously set.');
-            }
-            $arrQuery['oauth_token'] = $this->tokens['request'];
-            $arrQuery['oauth_signature'] = $this->appSecret . '&';
+            $this->tokens['request'] = $arrBody[1];
         }
         
-        $strUrl = self::URL_OAUTH_ACCESS_TOKEN . '?' . http_build_query($arrQuery);
-        $strResponse = $this->makeApiCall($strUrl, 'GET', array(), '', true);
-        $arrBody = array();
-        parse_str($strResponse, $arrBody);
-        if (count($arrBody) < 4
-            || !array_key_exists('oauth_token', $arrBody)
-            || !array_key_exists('oauth_token_secret', $arrBody)) {
-            throw new Exception('Could not get access token. Api response: ' . $strResponse);
-        }
-        $this->tokens['access'] = $arrBody;
-        return $this;
+        return $this->tokens['request'];
     }
     
     
     
     /**
+     * Getter method for access token; implements lazy instantiation.
+     * @param   boolean     $force   Whether to renew the access token even if it is already set.
+     * @return  array                Array with access token info.
+     * @throws  \bogcon\ymclient\Exception  If could not fetch access token from Yahoo API.
+     */
+    public function getAccessToken($force = false)
+    {
+        if (!$this->hasAccessToken() || $force) {
+            $arrQuery = array(
+                'oauth_nonce' => uniqid(mt_rand(1, 1000)),
+                'oauth_consumer_key' => $this->appKey,
+                'oauth_signature_method' => 'PLAINTEXT',
+                'oauth_timestamp' => time(),
+                'oauth_version' => '1.0',
+            );
+            
+            if ($force && $this->hasAccessToken()) { // renew acces token
+                $arrQuery['oauth_token'] = $this->tokens['access']['oauth_token'];
+                $arrQuery['oauth_signature'] = $this->appSecret . '&' . $this->tokens['access']['oauth_token_secret'];
+                $arrQuery['oauth_session_handle'] = $this->tokens['access']['oauth_session_handle'];
+            } else { // new acces token
+                $arrQuery['oauth_token'] = $this->getRequestToken();
+                $arrQuery['oauth_signature'] = $this->appSecret . '&';
+            }
+            
+            $strUrl = self::URL_OAUTH_ACCESS_TOKEN . '?' . http_build_query($arrQuery);
+            $strResponse = $this->makeApiCall($strUrl, 'GET', array(), '', true);
+            $arrBody = array();
+            parse_str($strResponse, $arrBody);
+            if (count($arrBody) < 4
+                || !array_key_exists('oauth_token', $arrBody)
+                || !array_key_exists('oauth_token_secret', $arrBody)) {
+                throw new Exception('Could not fetch access token. Api response: ' . $strResponse);
+            }
+            $this->tokens['access'] = $arrBody;
+            $this->setTokenRenewed(true);
+        }
+        
+        return $this->tokens['access'];
+    }
+    
+    
+    
+    
+    /**
      * Creates session.
-     * @param   int   $intStatus    The state to log user in. One of the constants \bogcon\ymclient\Engine::USER_IS_* (optional)
+     * @param   int      $intState          The state to log user in. One of the constants \bogcon\ymclient\Engine::USER_IS_* (optional)
+     * @param   string   $strStatusMessage  The presence message of the user. (optional)
      * @return  \bogcon\ymclient\Engine
      * @throws  \bogcon\ymclient\Exception
      */
-    public function logIn($intStatus = self::USER_IS_ONLINE)
+    public function logIn($intState = self::USER_IS_ONLINE, $strStatusMessage = '')
     {
-        $strPostData = json_encode(array('presenceState' => $intStatus));
+        // check state param
+        if (!in_array($intState, array(self::USER_IS_ONLINE, self::USER_IS_OFFLINE, self::USER_IS_BUSY, self::USER_IS_IDLE))) {
+            $intState = self::USER_IS_ONLINE; // set default value
+        }
+        $arrPostData = array(
+            'presenceState' => $intState,
+        );
+        if (mb_strlen($strStatusMessage)) {
+            $arrPostData['presenceMessage'] = $strStatusMessage;
+        }
+        
+        $strPostData = json_encode($arrPostData);
         $intHttpStatus = 0;
         $strResponse = $this->makeApiCall(
             self::URL_YM_CREATE_SESSION,
@@ -372,8 +386,8 @@ class Engine
         );
         
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall(
                 self::URL_YM_CREATE_SESSION,
                 'GET',
@@ -403,11 +417,15 @@ class Engine
     /**
      * Keeps alive user session on Yahoo 's servers.
      * @return \bogcon\ymclient\Engine
-     * @throws \bogcon\ymclient\Exception
+     * @throws \bogcon\ymclient\Exception   If not previously logged in, if could not keep alive session.
      */
     public function keepAliveSession()
     {
-        $strUrl = str_replace('{{SERVER}}', $this->session['server'], self::URL_YM_KEEPALIVE_SESSION)
+        if (!$this->hasSession()) {
+            throw new Exception('You have to be logged in in order to perform this action.');
+        }
+        
+        $strUrl = str_replace('%SERVER%', $this->session['server'], self::URL_YM_KEEPALIVE_SESSION)
             . '?sid=' . urlencode($this->session['sessionId'])
             . '&notifyServerToken=1';
 
@@ -415,8 +433,8 @@ class Engine
         $strResponse = $this->makeApiCall($strUrl, 'PUT', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
 
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall($strUrl, 'PUT', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
         }
 
@@ -440,15 +458,15 @@ class Engine
             return $this;
         }
         
-        $strUrl = str_replace('{{SERVER}}', $this->session['server'], self::URL_YM_DESTROY_SESSION)
+        $strUrl = str_replace('%SERVER%', $this->session['server'], self::URL_YM_DESTROY_SESSION)
             . '?sid=' . urlencode($this->session['sessionId']);
 
         $intHttpStatus = 0;
         $strResponse = $this->makeApiCall($strUrl, 'DELETE', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
 
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall($strUrl, 'DELETE', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
         }
 
@@ -468,14 +486,14 @@ class Engine
      * @param   string              $strImgSize        Can take 'small', 'medium', 'full' values.
      * @param   string              $strImgFormat      Can take 'gif', 'jpg', 'png' values.
      * @return  string                                 User 's avatar url.
-     * @throws \bogcon\ymclient\Exception
+     * @throws \bogcon\ymclient\Exception   If could not fetch avatar.
      */
     public function fetchCustomAvatar($strUserId, $strNetwork = 'yahoo', $strImgSize = 'small', $strImgFormat = 'png')
     {
         $strReturnValue = '';
 
         $strUrl = str_replace(
-            array('{{USERID}}', '{{NETWORK}}'),
+            array('%USERID%', '%NETWORK%'),
             array($strUserId, $strNetwork),
             self::URL_YM_CUSTOM_AVATARS
         ) . '?size=' . urlencode($strImgSize)
@@ -485,8 +503,8 @@ class Engine
         $strResponse = $this->makeApiCall($strUrl, 'HEAD', $this->getHeadersForCurlCall(), '', false, $intHttpStatus);
 
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall($strUrl, 'HEAD', $this->getHeadersForCurlCall(), '', false, $intHttpStatus);
         }
 
@@ -496,7 +514,7 @@ class Engine
 
         $arrHeaders = $this->getHeadersFromCurlResponse($strResponse);
         if (array_key_exists('x-yahoo-msgr-imageurl', $arrHeaders)
-            && strlen($arrHeaders['x-yahoo-msgr-imageurl'])) {
+            && mb_strlen($arrHeaders['x-yahoo-msgr-imageurl'])) {
             $strReturnValue = $arrHeaders['x-yahoo-msgr-imageurl'];
         } else {
             throw new Exception('Could not get user avatar. Api response: ' . $strResponse);
@@ -510,11 +528,15 @@ class Engine
     /**
      * Retrieve list of groups and users.
      * @return array
-     * @throws \bogcon\ymclient\Exception
+     * @throws \bogcon\ymclient\Exception   If not previously logged in, or could not fetch groups.
      */
     public function fetchGroups()
     {
-        $strUrl = str_replace('{{SERVER}}', $this->session['server'], self::URL_YM_GROUPS)
+        if (!$this->hasSession()) {
+            throw new Exception('You have to be logged in in order to perform this action.');
+        }
+        
+        $strUrl = str_replace('%SERVER%', $this->session['server'], self::URL_YM_GROUPS)
             . '?sid=' . urlencode($this->session['sessionId'])
             . '&fields=' . urlencode('+presence')
             . '&fields=' . urlencode('+contacts')
@@ -525,8 +547,8 @@ class Engine
         $strResponse = $this->makeApiCall($strUrl, 'GET', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
 
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall($strUrl, 'GET', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
         }
 
@@ -551,11 +573,15 @@ class Engine
      * Fetch notifications (messages from other users, other users status changes, etc...)
      * @param  integer  $intSequence    Unique sequence 's number.
      * @return array
-     * @throws \bogcon\ymclient\Exception
+     * @throws \bogcon\ymclient\Exception   If not previously logged in, or could not fetch notifications.
      */
     public function fetchNotifications($intSequence)
     {
-        $strUrl = str_replace('{{SERVER}}', $this->session['server'], self::URL_YM_NOTIFICATIONS)
+        if (!$this->hasSession()) {
+            throw new Exception('You have to be logged in in order to perform this action.');
+        }
+        
+        $strUrl = str_replace('%SERVER%', $this->session['server'], self::URL_YM_NOTIFICATIONS)
             . '?sid=' . urlencode($this->session['sessionId'])
             . '&seq=' . intval($intSequence)
             . '&count=100'
@@ -566,8 +592,8 @@ class Engine
 
         /* renew access token / session if expired and redo the call */
         if (401 == $intHttpStatus) {
-            if (false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-                $this->fetchAccessToken(true);
+            if (false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+                $this->getAccessToken(true);
                 $strResponse = $this->makeApiCall($strUrl, 'GET', $this->getHeadersForCurlCall(), '', true, $intHttpStatus);
             }
         }
@@ -595,12 +621,16 @@ class Engine
      * @param  string   $strUserId      The user 's id to send message to.
      * @param  string   $strNetwork     The user 's network. (optional, default 'yahoo')
      * @return \bogcon\ymclient\Engine
-     * @throws \bogcon\ymclient\Exception
+     * @throws \bogcon\ymclient\Exception   If not previously logged in, or could not fetch notifications.
      */
     public function sendMessage($strMsg, $strUserId, $strNetwork = 'yahoo')
     {
+        if (!$this->hasSession()) {
+            throw new Exception('You have to be logged in in order to perform this action.');
+        }
+        
         $strUrl = str_replace(
-            array('{{SERVER}}', '{{NETWORK}}', '{{TARGETID}}'),
+            array('%SERVER%', '%NETWORK%', '%TARGETID%'),
             array($this->session['server'], $strNetwork, $strUserId),
             self::URL_YM_SEND_MESSAGE
         ) . '?sid=' . urlencode($this->session['sessionId']);
@@ -621,8 +651,8 @@ class Engine
         );
         
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall(
                 $strUrl,
                 'POST',
@@ -646,11 +676,15 @@ class Engine
      * @param   int             $intState         Presence state.
      * @param   string          $strMessage       Presence message.
      * @return \bogcon\ymclient\Engine
-     * @throws \bogcon\ymclient\Exception
+     * @throws \bogcon\ymclient\Exception   If not previously logged in, if could not change presence state.
      */
     public function changePresenceState($intState, $strMessage)
     {
-        $strUrl = str_replace('{{SERVER}}', $this->session['server'], self::URL_YM_PRESENCE)
+        if (!$this->hasSession()) {
+            throw new Exception('You have to be logged in in order to perform this action.');
+        }
+        
+        $strUrl = str_replace('%SERVER%', $this->session['server'], self::URL_YM_PRESENCE)
             . '?sid=' . urlencode($this->session['sessionId']);
         $strPostData = json_encode(
             array(
@@ -669,8 +703,8 @@ class Engine
         );
         
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall(
                 $strUrl,
                 'PUT',
@@ -696,7 +730,7 @@ class Engine
      * @param   string              $strNetwork         Contact 's network.
      * @param   string              $strAuthReason      Authorization reason; max (2000 chars).
      * @return  \bogcon\ymclient\Engine
-     * @throws  \bogcon\ymclient\Exception
+     * @throws  \bogcon\ymclient\Exception  If not previously logged in, if could not change presence state.
      */
     public function authorizeBuddy(
         $strContactId,
@@ -704,14 +738,17 @@ class Engine
         $strNetwork = 'yahoo',
         $strAuthReason = ''
     ) {
+        if (!$this->hasSession()) {
+            throw new Exception('You have to be logged in in order to perform this action.');
+        }
         $strUrl = str_replace(
-            array('{{SERVER}}', '{{NETWORK}}', '{{CONTACTID}}'),
+            array('%SERVER%', '%NETWORK%', '%CONTACTID%'),
             array($this->session['server'], $strNetwork, $strContactId),
             self::URL_YM_BUDDY_AUTHORIZATION
         ) . '?sid=' . urlencode($this->session['sessionId']);
 
-        if (strlen($strAuthReason)) {
-            $strPostData = json_encode(array('authReason' => substr(trim($strAuthReason), 0, 2000)));
+        if (mb_strlen($strAuthReason)) {
+            $strPostData = json_encode(array('authReason' => mb_substr(trim($strAuthReason), 0, 2000)));
         } else {
             $strPostData = json_encode(array());
         }
@@ -727,8 +764,8 @@ class Engine
         );
 
         /* renew access token if expired and redo the call */
-        if (401 == $intHttpStatus && false !== strpos($strResponse, 'oauth_problem="token_expired"')) {
-            $this->fetchAccessToken(true);
+        if (401 == $intHttpStatus && false !== mb_strpos($strResponse, 'oauth_problem="token_expired"')) {
+            $this->getAccessToken(true);
             $strResponse = $this->makeApiCall(
                 $strUrl,
                 $strMethod,
@@ -758,13 +795,13 @@ class Engine
     protected function getHeadersFromCurlResponse($strResponse)
     {
         $arrReturnValue = array();
-        $strHeaderText = substr($strResponse, 0, strpos($strResponse, "\r\n\r\n"));
+        $strHeaderText = mb_substr($strResponse, 0, mb_strpos($strResponse, "\r\n\r\n"));
         foreach (explode("\r\n", $strHeaderText) as $intKey => $strLine) {
             if (0 === $intKey) {
                 $arrReturnValue['http_code'] = $strLine;
             } else {
                 $arrLine = explode(': ', $strLine);
-                $arrReturnValue[strtolower($arrLine[0])] = $arrLine[1];
+                $arrReturnValue[mb_strtolower($arrLine[0])] = $arrLine[1];
             }
         }
         return $arrReturnValue;
@@ -775,21 +812,18 @@ class Engine
     /**
      * Retrieve authorization header.
      * @return  string                  The OAuth authorization header.
-     * @throws  \bogcon\ymclient\Exception
      */
     protected function getAuthorizationHeader()
     {
-        if (!$this->hasAccessToken()) {
-            throw new Exception('No access token previously set.');
-        }
+        $accessToken = $this->getAccessToken();
         return 'Authorization: OAuth realm="yahooapis.com",'
             . 'oauth_nonce="' . uniqid(mt_rand(1, 1000)) . '",'
             . 'oauth_consumer_key="' . $this->appKey . '",'
             . 'oauth_signature_method="PLAINTEXT",'
-            . 'oauth_signature="' . urlencode($this->appSecret . '&' . $this->tokens['access']['oauth_token_secret']) . '",'
+            . 'oauth_signature="' . urlencode($this->appSecret . '&' . $accessToken['oauth_token_secret']) . '",'
             . 'oauth_timestamp="' . time() . '",'
             . 'oauth_version="1.0",'
-            . 'oauth_token="' . urlencode($this->tokens['access']['oauth_token']) . '"';
+            . 'oauth_token="' . urlencode($accessToken['oauth_token']) . '"';
     }
     
     
@@ -806,7 +840,7 @@ class Engine
         );
         if (is_string($mxdPostData)) {
             $arrReturnValue[] = 'Content-Type: application/json;charset=utf-8';
-            $arrReturnValue[] = 'Content-Length: ' . strlen($mxdPostData);
+            $arrReturnValue[] = 'Content-Length: ' . mb_strlen($mxdPostData);
         }
         return $arrReturnValue;
     }
@@ -815,7 +849,7 @@ class Engine
     
     /**
      * Getter method for $tokens.
-     * @return array
+     * @return array    Array that could have two keys 'request' & 'access'.
      */
     public function getTokens()
     {
@@ -876,10 +910,15 @@ class Engine
     
     /**
      * Getter method for $tokenRenewed.
+     * If it is true, this method also will reset the flag, so a second call to irl will return false.
      * @return array
      */
     public function isTokenRenewed()
     {
+        if ($this->tokenRenewed) {
+            $this->setTokenRenewed(false);
+            return true;
+        }
         return $this->tokenRenewed;
     }
 

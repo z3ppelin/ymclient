@@ -5,9 +5,10 @@
     "keywords": [
         "yahoo",
         "messenger",
-        "yahoo messenger",
-        "yahoo messenger client",
-        "yahoo API"
+        "client",
+        "api",
+        "instant",
+        "messaging"
     ],
     "homepage": "https://github.com/z3ppelin/ymclient",
     "license": "BSD-3-Clause",
@@ -19,7 +20,8 @@
     ],
     "require": {
         "php": ">=5.3.3",
-        "ext-curl": "*"
+        "ext-curl": "*",
+        "ext-mbstring": "*"
     },
     "require-dev": {
         "phpunit/PHPUnit": "~4.1",
