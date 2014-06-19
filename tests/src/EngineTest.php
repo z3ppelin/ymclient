@@ -170,25 +170,16 @@ class EngineTest extends \PHPUnit_Framework_TestCase
     
     
     /**
-     * @requires extension curl
-     * @covers \bogcon\ymclient\Engine::__construct
-     */
-    public function testConstructorCurl()
-    {
-        $objYM = new Engine('johndoe', 'abcdefgppppp', 'testAppKey', 'testAppSecret');
-    }
-    
-    
-    
-    /**
      * Test everything goes ok with some valid params, test default values.
+     * @requires extension curl
+     * @requires extension mbstring
      * @covers \bogcon\ymclient\Engine::__construct
      * @covers \bogcon\ymclient\Engine::hasAccessToken
      * @covers \bogcon\ymclient\Engine::hasRequestToken
      * @covers \bogcon\ymclient\Engine::hasSession
      * @covers \bogcon\ymclient\Engine::isTokenRenewed
      */
-    public function testConstructor()
+    public function testConstructorWorksFine()
     {
         $objYM = new Engine('johndoe', 'abcdefgppppp', 'testAppKey', 'testAppSecret');
         $this->assertFalse($objYM->hasRequestToken());
@@ -296,11 +287,11 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetRequestTokenIsThrowingException()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('aaaaaaa'));
-        $objStub->getRequestToken();
+        $objMock->getRequestToken();
     }
     
     
@@ -312,21 +303,21 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetRequestTokenWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once()) // first time make api call
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once()) // first time make api call
                 ->method('makeApiCall')
                 ->will($this->returnValue('RequestToken=cadscas1231234wre'));
-        $this->assertEquals('cadscas1231234wre', $objStub->getRequestToken());
-        $this->assertTrue($objStub->hasRequestToken());
+        $this->assertEquals('cadscas1231234wre', $objMock->getRequestToken());
+        $this->assertTrue($objMock->hasRequestToken());
         
-        $objStub->expects($this->never()) // second time retrieve directly
+        $objMock->expects($this->never()) // second time retrieve directly
                 ->method('makeApiCall');
-        $this->assertEquals('cadscas1231234wre', $objStub->getRequestToken());
+        $this->assertEquals('cadscas1231234wre', $objMock->getRequestToken());
         
-        $objStub->setTokens(array('request' => 'testRequestToken'));
-        $objStub->expects($this->never()) // test no api call is made after request is set manually
+        $objMock->setTokens(array('request' => 'testRequestToken'));
+        $objMock->expects($this->never()) // test no api call is made after request is set manually
                 ->method('makeApiCall');
-        $this->assertEquals('testRequestToken', $objStub->getRequestToken());
+        $this->assertEquals('testRequestToken', $objMock->getRequestToken());
     }
     
     
@@ -338,11 +329,11 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetAccessTokenIsThrowingExceptionWhenNoAccessTokenIsReceived()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('aaaaaaa'));
-        $objStub->setTokens(array('request' => 'testRequestToken'))
+        $objMock->setTokens(array('request' => 'testRequestToken'))
                 ->getAccessToken();
     }
     
@@ -356,20 +347,20 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetAccessTokenWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once()) // first time fetch access token from Yahoo API
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once()) // first time fetch access token from Yahoo API
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->setTokens(array('request' => 'testRequestToken'));
-        $accessToken = $objStub->getAccessToken();
+        $objMock->setTokens(array('request' => 'testRequestToken'));
+        $accessToken = $objMock->getAccessToken();
         $this->assertNotEmpty($accessToken);
-        $this->assertTrue($objStub->hasAccessToken());
-        $this->assertTrue($objStub->isTokenRenewed()); // first call to isTokenRenewed should return true
+        $this->assertTrue($objMock->hasAccessToken());
+        $this->assertTrue($objMock->isTokenRenewed()); // first call to isTokenRenewed should return true
         
-        $objStub->expects($this->never()) // second time fetch internal
+        $objMock->expects($this->never()) // second time fetch internal
                 ->method('makeApiCall');
-        $this->assertSame($accessToken, $objStub->getAccessToken());
-        $this->assertFalse($objStub->isTokenRenewed()); // second call to isTokenRenewed should return false
+        $this->assertSame($accessToken, $objMock->getAccessToken());
+        $this->assertFalse($objMock->isTokenRenewed()); // second call to isTokenRenewed should return false
     }
     
     
@@ -382,23 +373,23 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetAccessTokenWorksFine2()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->at(0)) // fetch request token call
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->at(0)) // fetch request token call
                 ->method('makeApiCall')
                 ->will($this->returnValue('RequestToken=cadscas1231234wre'));
-        $objStub->expects($this->at(1)) // fetch access token from Yahoo API
+        $objMock->expects($this->at(1)) // fetch access token from Yahoo API
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
         
-        $accessToken = $objStub->getAccessToken();
+        $accessToken = $objMock->getAccessToken();
         $this->assertNotEmpty($accessToken);
-        $this->assertTrue($objStub->hasAccessToken());
-        $this->assertTrue($objStub->isTokenRenewed()); // first call to isTokenRenewed should return true
+        $this->assertTrue($objMock->hasAccessToken());
+        $this->assertTrue($objMock->isTokenRenewed()); // first call to isTokenRenewed should return true
         
-        $objStub->expects($this->never()) // fetch access token internal
+        $objMock->expects($this->never()) // fetch access token internal
                 ->method('makeApiCall');
-        $this->assertSame($accessToken, $objStub->getAccessToken());
-        $this->assertFalse($objStub->isTokenRenewed()); // second call to isTokenRenewed should return false
+        $this->assertSame($accessToken, $objMock->getAccessToken());
+        $this->assertFalse($objMock->isTokenRenewed()); // second call to isTokenRenewed should return false
     }
     
     
@@ -410,11 +401,11 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetAccessTokenForcedIsThrowingExceptionWhenNoNewAccessTokenIsReceived()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('dasdasdas'));
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -429,7 +420,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         );
         
         try {
-            $objStub->getAccessToken(true);
+            $objMock->getAccessToken(true);
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === mb_strpos($objEx->getMessage(), 'Could not fetch access token. Api response:')) {
                 $this->fail('Not the expected exception. Received instead: ' . $objEx->getMessage());
@@ -449,11 +440,11 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetAccessTokenForcedWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477970&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -467,7 +458,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->getAccessToken(true);
         
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
         $this->assertSame(
             array(
                 'request' => 'someTestRequestToken',
@@ -480,13 +471,13 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     'xoauth_yahoo_guid' => 'testXOAuthYahooGuid'
                 ),
             ),
-            $objStub->getTokens()
+            $objMock->getTokens()
         );
-        $this->assertTrue($objStub->hasAccessToken());
-        $this->assertTrue($objStub->hasRequestToken());
+        $this->assertTrue($objMock->hasAccessToken());
+        $this->assertTrue($objMock->hasRequestToken());
         
         // test second call to getAccessToken() fetch internal, not from API
-        $objStub->expects($this->never())
+        $objMock->expects($this->never())
                 ->method('makeApiCall');
         $this->assertSame(array(
             'oauth_token' => 'testOAuthToken',
@@ -496,8 +487,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             'oauth_authorization_expires_in' => '770477970',
             'xoauth_yahoo_guid' => 'testXOAuthYahooGuid'
             
-        ), $objStub->getAccessToken());
-        $this->assertFalse($objStub->isTokenRenewed()); // was renewed(taken from api) last call, now it is returned from internal field.
+        ), $objMock->getAccessToken());
+        $this->assertFalse($objMock->isTokenRenewed()); // was renewed(taken from api) last call, now it is returned from internal field.
     }
     
     
@@ -509,11 +500,11 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogInThrowsExceptionWhenHttpStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->once())
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will($this->returnValue('aaaa'));
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -534,9 +525,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogInFailsWhenResponseIsNotValidJson()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->once())
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -546,7 +537,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -568,7 +559,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogInWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
         $arrSession = array(
             'sessionId' => 'someTestSessionId',
@@ -582,7 +573,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                 'presenceSubscriptionsMaxPerRequest' => 500,
             ),
         );
-        $objStub->expects($this->once())
+        $objMock->expects($this->once())
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -605,7 +596,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -615,7 +606,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                 ),
             )
         )->logIn();
-        $this->assertSame($arrSession, $objStub->getSession());
+        $this->assertSame($arrSession, $objMock->getSession());
     }
     
     
@@ -626,11 +617,11 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogOutWorksFineIfNotLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->never())
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->never())
                 ->method('makeApiCall')
                 ->will($this->returnValue('dasdas'));
-        $objStub->logOut();
+        $objMock->logOut();
     }
     
     
@@ -643,8 +634,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogOutFailsWhenHttpStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
-        $objStub->expects($this->at(0)) // login call
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock->expects($this->at(0)) // login call
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -660,7 +651,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(                 
                     $this->returnCallback(
@@ -671,7 +662,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );          
                     
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -682,7 +673,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         try {
-            $objStub->logOut();
+            $objMock->logOut();
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === strpos($objEx->getMessage(), 'Could not log out. Api response')) {
                 $this->fail('Exception should have been thrown.');
@@ -699,9 +690,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogOutWorksFineIfLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0))
+        $objMock->expects($this->at(0))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -717,7 +708,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -727,7 +718,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -749,9 +740,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testLogOutWorksFineIfLoggedInAndTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -767,7 +758,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for logout to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for logout to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -777,10 +768,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for logout to renew access token
+        $objMock->expects($this->at(2)) // stubbing for logout to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for logout to successfully logout
+        $objMock->expects($this->at(3)) // stubbing for logout to successfully logout
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -790,7 +781,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -801,7 +792,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn()
          ->logOut();
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -854,9 +845,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchCustomAvatarWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // needed for login
+        $objMock->expects($this->at(0)) // needed for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -872,7 +863,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -888,7 +879,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -898,7 +889,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                 ),
             )
         )->logIn();
-        $url = $objStub->fetchCustomAvatar('yahooid');
+        $url = $objMock->fetchCustomAvatar('yahooid');
         $this->assertSame('http://msgr.zenfs.com/msgrDisImg/KMU47EN7G7XKKZJRK3EFJZSABQ', $url);
     }
     
@@ -911,9 +902,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchCustomAvatarThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // needed for login
+        $objMock->expects($this->at(0))  // needed for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -936,7 +927,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -946,7 +937,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -969,9 +960,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchCustomAvatarThrowsExceptionWhenNoAvatarIsReceived()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -987,7 +978,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1))  // stubbing for fetchCustomAvatar
+        $objMock->expects($this->at(1))  // stubbing for fetchCustomAvatar
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1002,7 +993,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1025,9 +1016,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchCustomAvatarWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1043,7 +1034,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for fetchCustomAvatar to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for fetchCustomAvatar to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1053,10 +1044,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for fetchCustomAvatar to renew access token
+        $objMock->expects($this->at(2)) // stubbing for fetchCustomAvatar to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for fetchCustomAvatar to successfully fetchCustomAvatar
+        $objMock->expects($this->at(3)) // stubbing for fetchCustomAvatar to successfully fetchCustomAvatar
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1072,7 +1063,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1082,9 +1073,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                 ),
             )
         )->logIn();
-        $url = $objStub->fetchCustomAvatar('yahooid');
+        $url = $objMock->fetchCustomAvatar('yahooid');
         $this->assertSame('http://msgr.zenfs.com/msgrDisImg/KMU47EN7G7XKKZJRK3EFJZSABQ', $url);
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -1095,9 +1086,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchGroupsWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1114,7 +1105,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1124,7 +1115,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1135,7 +1126,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         
-        $groups = $objStub->fetchGroups();
+        $groups = $objMock->fetchGroups();
         $this->assertTrue(is_array($groups));
         $this->assertSame($groups, json_decode('{"groups":[{"group":{"name":"GroupX","uri":"rcore3.messenger.yahooapis.com\/v1\/group\/GroupX","contacts":[{"contact":{"id":"yahooid1","uri":"rcore3.messenger.yahooapis.com\/v1\/contact\/yahoo\/yahooid1","presence":{"presenceState":0},"clientCapabilities":[{"clientCapability":"richText"},{"clientCapability":"smiley"},{"clientCapability":"buzz"},{"clientCapability":"fileXfer"},{"clientCapability":"voice"},{"clientCapability":"interop"},{"clientCapability":"typing"}],"addressbook":{"id":"12","firstname":"Jonh","lastname":"Doe","lastModified":1376325172}}},{"contact":{"id":"yahooid2","uri":"rcore3.messenger.yahooapis.com\/v1\/contact\/yahoo\/yahooid2","presence":{"presenceState":-1},"clientCapabilities":[],"addressbook":{"id":"3","firstname":"Johnny","lastname":"Doe","lastModified":1192198013}}}]}}],"start":0,"total":1,"count":1}', true));
     }
@@ -1149,9 +1140,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchGroupsThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1167,7 +1158,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for fetchGroups
+        $objMock->expects($this->at(1)) // stubbing for fetchGroups
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1177,7 +1168,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1201,9 +1192,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchGroupsThrowsExceptionWhenBadJson()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1220,7 +1211,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1230,7 +1221,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1242,7 +1233,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         )->logIn();
         
         try {
-            $objStub->fetchGroups();
+            $objMock->fetchGroups();
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === strpos($objEx->getMessage(), 'Json error code')) {
                 $this->fail("Exception should have been thrown");
@@ -1261,8 +1252,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchGroupsThrowsExceptionWhenNoPreviouslyLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
-        $objStub->fetchGroups();
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock->fetchGroups();
     }
     
     
@@ -1274,9 +1265,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchGroupsWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1292,7 +1283,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for fetchGroups to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for fetchGroups to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1302,10 +1293,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for fetchGroups to renew access token
+        $objMock->expects($this->at(2)) // stubbing for fetchGroups to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for fetchGroups to successfully fetchGroups
+        $objMock->expects($this->at(3)) // stubbing for fetchGroups to successfully fetchGroups
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1315,7 +1306,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1326,10 +1317,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         
-        $groups = $objStub->fetchGroups();
+        $groups = $objMock->fetchGroups();
         $this->assertTrue(is_array($groups));
         $this->assertSame($groups, json_decode('{"groups":[{"group":{"name":"GroupX","uri":"rcore3.messenger.yahooapis.com\/v1\/group\/GroupX","contacts":[{"contact":{"id":"yahooid1","uri":"rcore3.messenger.yahooapis.com\/v1\/contact\/yahoo\/yahooid1","presence":{"presenceState":0},"clientCapabilities":[{"clientCapability":"richText"},{"clientCapability":"smiley"},{"clientCapability":"buzz"},{"clientCapability":"fileXfer"},{"clientCapability":"voice"},{"clientCapability":"interop"},{"clientCapability":"typing"}],"addressbook":{"id":"12","firstname":"Jonh","lastname":"Doe","lastModified":1376325172}}},{"contact":{"id":"yahooid2","uri":"rcore3.messenger.yahooapis.com\/v1\/contact\/yahoo\/yahooid2","presence":{"presenceState":-1},"clientCapabilities":[],"addressbook":{"id":"3","firstname":"Johnny","lastname":"Doe","lastModified":1192198013}}}]}}],"start":0,"total":1,"count":1}', true));
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -1340,9 +1331,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchNotificationsWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1359,7 +1350,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1369,7 +1360,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1380,7 +1371,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         
-        $notifications = $objStub->fetchNotifications(4);
+        $notifications = $objMock->fetchNotifications(4);
         $this->assertTrue(is_array($notifications));
         $this->assertSame($notifications, json_decode('{ "@pendingMsg" : 0, "@syncStatus" : 0, "responses" : [ { "message" : { "status" : 1, "sequence" : 4, "sender" : "yahooId1" , "receiver" : "myYahooId" , "msg" : "how are you?" , "timeStamp" : 1378303022, "hash" : "QuyxE57kKbX4vp7K+OP1nTbfJ30hAQ==" , "msgContext" : "QuyxE57kKbX4vp7K+OP1nTbfJ30hAQ=="  } } ] }', true));
     }
@@ -1394,9 +1385,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchNotificationsThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1412,7 +1403,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for fetchNotifications
+        $objMock->expects($this->at(1)) // stubbing for fetchNotifications
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1422,7 +1413,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1446,9 +1437,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchNotificationsThrowsExceptionWhenBadJson()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1465,7 +1456,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1475,7 +1466,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1487,7 +1478,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         )->logIn();
         
         try {
-            $objStub->fetchNotifications(10000);
+            $objMock->fetchNotifications(10000);
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === strpos($objEx->getMessage(), 'Json error code')) {
                 $this->fail("Exception should have been thrown");
@@ -1506,8 +1497,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchNotificationsThrowsExceptionWhenNoPreviouslyLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
-        $objStub->fetchNotifications(321);
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock->fetchNotifications(321);
     }
     
     
@@ -1519,9 +1510,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testFetchNotificationsWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1537,7 +1528,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for fetchGroups to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for fetchGroups to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1547,10 +1538,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for fetchGroups to renew access token
+        $objMock->expects($this->at(2)) // stubbing for fetchGroups to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for fetchGroups to successfully fetchGroups
+        $objMock->expects($this->at(3)) // stubbing for fetchGroups to successfully fetchGroups
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1560,7 +1551,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1571,10 +1562,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         
-        $notifications = $objStub->fetchNotifications(4);
+        $notifications = $objMock->fetchNotifications(4);
         $this->assertTrue(is_array($notifications));
         $this->assertSame($notifications, json_decode('{ "@pendingMsg" : 0, "@syncStatus" : 0, "responses" : [ { "message" : { "status" : 1, "sequence" : 4, "sender" : "yahooId1" , "receiver" : "myYahooId" , "msg" : "how are you?" , "timeStamp" : 1378303022, "hash" : "QuyxE57kKbX4vp7K+OP1nTbfJ30hAQ==" , "msgContext" : "QuyxE57kKbX4vp7K+OP1nTbfJ30hAQ=="  } } ] }', true));
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -1585,9 +1576,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testSendMessageWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1604,7 +1595,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1614,7 +1605,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1636,9 +1627,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testSendMessageThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1654,7 +1645,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for sendMessage
+        $objMock->expects($this->at(1)) // stubbing for sendMessage
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1664,7 +1655,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1688,8 +1679,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testSendMessageThrowsExceptionWhenNoPreviouslyLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
-        $objStub->sendMessage('How are you my friend?', 'buddyYahooId');
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock->sendMessage('How are you my friend?', 'buddyYahooId');
     }
     
     
@@ -1701,9 +1692,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testSendMessageWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1719,7 +1710,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for sendMessage to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for sendMessage to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1729,10 +1720,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for sendMessage to renew access token
+        $objMock->expects($this->at(2)) // stubbing for sendMessage to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for sendMessage to successfully sendMessage
+        $objMock->expects($this->at(3)) // stubbing for sendMessage to successfully sendMessage
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1742,7 +1733,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1753,7 +1744,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn()
          ->sendMessage('How are you my friend?', 'buddyYahooId');
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -1764,9 +1755,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testChangePresenceStateWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1783,7 +1774,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1))
+        $objMock->expects($this->at(1))
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1793,7 +1784,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1815,9 +1806,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testChangePresenceStateThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1833,7 +1824,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for sendMessage
+        $objMock->expects($this->at(1)) // stubbing for sendMessage
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1843,7 +1834,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1867,8 +1858,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testChangePresenceStateThrowsExceptionWhenNoPreviouslyLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
-        $objStub->changePresenceState(\bogcon\ymclient\Engine::USER_IS_BUSY, 'Very very busy...');
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock->changePresenceState(\bogcon\ymclient\Engine::USER_IS_BUSY, 'Very very busy...');
     }
     
     
@@ -1880,9 +1871,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testChangePresenceStateWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1898,7 +1889,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for changePresenceState to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for changePresenceState to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1908,10 +1899,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for changePresenceState to renew access token
+        $objMock->expects($this->at(2)) // stubbing for changePresenceState to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for changePresenceState to successfully changePresenceState
+        $objMock->expects($this->at(3)) // stubbing for changePresenceState to successfully changePresenceState
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1921,7 +1912,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1932,7 +1923,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn()
          ->changePresenceState(\bogcon\ymclient\Engine::USER_IS_BUSY, 'Very very busy...');
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -1943,9 +1934,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorizeBuddyWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1962,7 +1953,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1)) // stubbing for authorizeBuddy
+        $objMock->expects($this->at(1)) // stubbing for authorizeBuddy
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -1972,7 +1963,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -1995,9 +1986,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorizeBuddyThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2013,7 +2004,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for authorizeBuddy
+        $objMock->expects($this->at(1)) // stubbing for authorizeBuddy
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2023,7 +2014,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2034,7 +2025,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn();
         try {
-            $objStub->authorizeBuddy('buddyYahooId', \bogcon\ymclient\Engine::BUDDY_DECLINE, 'yahoo', 'I dont know you');
+            $objMock->authorizeBuddy('buddyYahooId', \bogcon\ymclient\Engine::BUDDY_DECLINE, 'yahoo', 'I dont know you');
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === strpos($objEx->getMessage(), 'Could not authorize buddy.')) {
                 $this->fail('Exception should have been thrown.');
@@ -2053,8 +2044,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorizeBuddyThrowsExceptionWhenNoPreviouslyLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
-        $objStub->authorizeBuddy('buddyYahooId');
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock->authorizeBuddy('buddyYahooId');
     }
     
     
@@ -2066,9 +2057,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testAuthorizeBuddyWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2084,7 +2075,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for authorizeBuddy to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for authorizeBuddy to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2094,10 +2085,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for authorizeBuddy to renew access token
+        $objMock->expects($this->at(2)) // stubbing for authorizeBuddy to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for authorizeBuddy to successfully authorizeBuddy
+        $objMock->expects($this->at(3)) // stubbing for authorizeBuddy to successfully authorizeBuddy
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2107,7 +2098,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2118,7 +2109,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn()
          ->authorizeBuddy('buddyYahooId', \bogcon\ymclient\Engine::BUDDY_ACCEPT);
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     /**
@@ -2127,9 +2118,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testCheckSessionWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2146,7 +2137,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1)) // stubbing for checkSession
+        $objMock->expects($this->at(1)) // stubbing for checkSession
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2156,7 +2147,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2166,7 +2157,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                 ),
             )
         )->logIn();
-        $returnedValue = $objStub->checkSession();
+        $returnedValue = $objMock->checkSession();
         $this->assertTrue(is_array($returnedValue));
         $this->assertSame($returnedValue, json_decode('{}', true));
     }
@@ -2180,9 +2171,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testCheckSessionThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2198,7 +2189,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for checkSession
+        $objMock->expects($this->at(1)) // stubbing for checkSession
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2208,7 +2199,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2232,9 +2223,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testCheckSessionThrowsExceptionWhenInvalidJson()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2250,7 +2241,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-       $objStub->expects($this->at(1)) // stubbing for checkSession
+       $objMock->expects($this->at(1)) // stubbing for checkSession
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2260,7 +2251,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2272,7 +2263,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
         )->logIn();
         
         try {
-            $objStub->checkSession();
+            $objMock->checkSession();
         } catch (\bogcon\ymclient\Exception $objEx) {
             if (false === strpos($objEx->getMessage(), 'Json error code')) {
                 $this->fail("Exception should have been thrown");
@@ -2290,9 +2281,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testCheckSessionWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2308,7 +2299,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for checkSession to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for checkSession to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2318,10 +2309,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for checkSession to renew access token
+        $objMock->expects($this->at(2)) // stubbing for checkSession to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for checkSession to successfully execute
+        $objMock->expects($this->at(3)) // stubbing for checkSession to successfully execute
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2331,7 +2322,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2341,10 +2332,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                 ),
             )
         )->logIn();
-        $returnedValue = $objStub->checkSession();
+        $returnedValue = $objMock->checkSession();
         $this->assertTrue(is_array($returnedValue));
         $this->assertSame($returnedValue, json_decode('{}', true));
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
@@ -2355,9 +2346,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testKeepAliveSessionWorksFine()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2374,7 +2365,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                     )
                 );
                 
-        $objStub->expects($this->at(1)) // stubbing for keepAliveSession
+        $objMock->expects($this->at(1)) // stubbing for keepAliveSession
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2384,7 +2375,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2406,9 +2397,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testKeepAliveSessionThrowsExceptionWhenStatusIsNot200()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         
-        $objStub->expects($this->at(0))  // stubbing for login
+        $objMock->expects($this->at(0))  // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2424,7 +2415,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for keepAliveSession to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for keepAliveSession to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2434,10 +2425,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for keepAliveSession to renew access token
+        $objMock->expects($this->at(2)) // stubbing for keepAliveSession to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for keepAliveSession second try
+        $objMock->expects($this->at(3)) // stubbing for keepAliveSession second try
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2447,7 +2438,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2471,8 +2462,8 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testKeepAliveSessionThrowsExceptionWhenNoPreviouslyLoggedIn()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
-        $objStub->keepAliveSession();
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('ter34dgf', 'tert34gdh', 'appKey123', 'appSecret123'));
+        $objMock->keepAliveSession();
     }
     
     
@@ -2484,9 +2475,9 @@ class EngineTest extends \PHPUnit_Framework_TestCase
      */
     public function testKeepAliveSessionWorksFineIfTokenExpired()
     {
-        $objStub = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
+        $objMock = $this->getMock('\bogcon\ymclient\Engine', array('makeApiCall'), array('usr', 'pass', 'appKey123', 'appSecret123'));
         $intHttpStatusCode = 0;
-        $objStub->expects($this->at(0)) // stubbing for login
+        $objMock->expects($this->at(0)) // stubbing for login
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2502,7 +2493,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(1)) // stubbing for keepAliveSession to get access token expired
+        $objMock->expects($this->at(1)) // stubbing for keepAliveSession to get access token expired
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2512,10 +2503,10 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->expects($this->at(2)) // stubbing for keepAliveSession to renew access token
+        $objMock->expects($this->at(2)) // stubbing for keepAliveSession to renew access token
                 ->method('makeApiCall')
                 ->will($this->returnValue('oauth_token=testOAuthToken&oauth_token_secret=testOAuthTokenSecret&oauth_expires_in=3600&oauth_session_handle=testOAuthSessionHandle&oauth_authorization_expires_in=770477963&xoauth_yahoo_guid=testXOAuthYahooGuid'));
-        $objStub->expects($this->at(3)) // stubbing for keepAliveSession to successfully execute
+        $objMock->expects($this->at(3)) // stubbing for keepAliveSession to successfully execute
                 ->method('makeApiCall')
                 ->will(
                     $this->returnCallback(
@@ -2525,7 +2516,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
                         }
                     )
                 );
-        $objStub->setTokens(
+        $objMock->setTokens(
             array(
                 'request' => 'someTestRequestToken',
                 'access' => array(
@@ -2536,7 +2527,7 @@ class EngineTest extends \PHPUnit_Framework_TestCase
             )
         )->logIn()
          ->keepAliveSession();
-        $this->assertTrue($objStub->isTokenRenewed());
+        $this->assertTrue($objMock->isTokenRenewed());
     }
     
     
